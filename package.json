@@ -1,0 +1,9 @@
+{
+  "name": "weweb-notifications",
+  "version": "1.0.0",
+  "description": "WeWeb Coded Component – Benachrichtigungs-Bell mit Realtime-Updates und Badge-Counter (HRklar)",
+  "private": true,
+  "scripts": { "build": "weweb build", "serve": "weweb serve" },
+  "devDependencies": { "@weweb/cli": "latest" },
+  "license": "UNLICENSED"
+}
