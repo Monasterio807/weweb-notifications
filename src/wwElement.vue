@@ -151,7 +151,9 @@ export default {
       return String(url).replace(/\/+$/, '');
     },
     apiKey() {
-      return (this.content && this.content.supabaseAnonKey) || '';
+      // Migration Irland→Zürich: Publishable-Key hart auf Zürich zwingen — der alte Anon-Key
+      // steht als literaler Wert in den Properties und wird vom Zürich-Projekt mit 401 abgewiesen.
+      return (this.content && 'sb_publishable_4rsRb_VB3l_45JO7sw0VSA_ODDS4CZc') || '';
     },
     token() {
       const t = ((this.content && this.content.authToken) || '').toString();
