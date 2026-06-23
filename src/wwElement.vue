@@ -146,7 +146,8 @@ export default {
   },
   computed: {
     baseUrl() {
-      const url = (this.content && this.content.supabaseUrl) || 'https://ztvqsxdudzdyqgeylujr.supabase.co';
+      let url = (this.content && this.content.supabaseUrl) || 'https://ztvqsxdudzdyqgeylujr.supabase.co';
+      if (/nemxnflngcfrpamkuesm/.test(String(url))) url = 'https://ztvqsxdudzdyqgeylujr.supabase.co';
       return String(url).replace(/\/+$/, '');
     },
     apiKey() {
