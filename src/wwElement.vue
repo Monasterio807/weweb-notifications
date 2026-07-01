@@ -151,8 +151,8 @@ export default {
       return String(url).replace(/\/+$/, '');
     },
     apiKey() {
-      // Prop first, dann Zürich-Fallback (Migration Irland→Zürich: alter Key wurde mit 401 abgewiesen)
-      return (this.content && this.content.apiKey) || 'sb_publishable_4rsRb_VB3l_45JO7sw0VSA_ODDS4CZc';
+      // Prop first (heisst in ww-config.js "supabaseAnonKey"), dann Zürich-Fallback
+      return (this.content && this.content.supabaseAnonKey) || 'sb_publishable_4rsRb_VB3l_45JO7sw0VSA_ODDS4CZc';
     },
     token() {
       const t = ((this.content && this.content.authToken) || '').toString();
