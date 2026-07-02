@@ -76,7 +76,12 @@
             :class="{ 'hrk-notif__item--unread': !n.is_read }"
             @click="onItemClick(n)"
           >
-            <span class="hrk-notif__icon" aria-hidden="true">{{ iconFor(n.type) }}</span>
+            <span class="hrk-notif__icon" aria-hidden="true"><svg
+                v-if="isEmilyProaktiv(n.type)"
+                class="hrk-icon hrk-icon--emily"
+                viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"
+                stroke-linecap="round" stroke-linejoin="round"
+              ><circle cx="12" cy="11" r="8"/><polygon points="6,21 7.5,16.5 11,18.5"/><line x1="9" y1="10.5" x2="9" y2="10.5"/><line x1="15" y1="10.5" x2="15" y2="10.5"/><polyline points="8.5,13.5 10,15 14,15 15.5,13.5"/></svg><template v-else>{{ iconFor(n.type) }}</template></span>
             <span class="hrk-notif__body">
               <span class="hrk-notif__item-title">{{ n.title || 'Benachrichtigung' }}</span>
               <span v-if="n.message" class="hrk-notif__msg">{{ n.message }}</span>
@@ -482,6 +487,10 @@ export default {
       this.ws = null;
     },
     // ---- Darstellung ----
+    /** Emily-proaktiv-Notifications erhalten die Emily-Sprechblase (SVG statt Emoji). */
+    isEmilyProaktiv(type) {
+      return (type || '').toString().toLowerCase() === 'emily_proaktiv';
+    },
     iconFor(type) {
       const map = {
         frist: '⏰', deadline: '⏰', erinnerung: '⏰',
@@ -670,6 +679,8 @@ export default {
 .hrk-notif__item--unread { background: var(--hrk-bordeaux-soft); }
 .hrk-notif__item--unread:hover { background: var(--hrk-bordeaux-soft); }
 .hrk-notif__icon { flex: none; font-size: 1.2rem; line-height: 1.4; }
+.hrk-icon { width: var(--hrk-icon-size-md, 20px); height: var(--hrk-icon-size-md, 20px); flex: none; }
+.hrk-icon--emily { color: var(--hrk-bordeaux, #7B2D3B); margin-top: 2px; }
 .hrk-notif__body { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .hrk-notif__item-title { font-weight: var(--hrk-fw-semibold); }
 .hrk-notif__msg {
