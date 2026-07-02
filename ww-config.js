@@ -21,7 +21,7 @@ export default {
       label: { en: 'Supabase Anon Key', de: 'Supabase Anon-Key' },
       type: 'Text',
       section: 'settings',
-      defaultValue: '',
+      defaultValue: 'sb_publishable_4rsRb_VB3l_45JO7sw0VSA_ODDS4CZc',
       bindable: true,
       /* wwEditor:start */
       bindingValidation: {

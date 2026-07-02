@@ -151,13 +151,13 @@ export default {
   },
   computed: {
     baseUrl() {
-      let url = (this.content && this.content.supabaseUrl) || 'https://ztvqsxdudzdyqgeylujr.supabase.co';
-      if (/nemxnflngcfrpamkuesm/.test(String(url))) url = 'https://ztvqsxdudzdyqgeylujr.supabase.co';
+      let url = (this.content && this.content.supabaseUrl) || '';
+      if (/nemxnflngcfrpamkuesm/.test(String(url))) url = '';
       return String(url).replace(/\/+$/, '');
     },
     apiKey() {
-      // Prop first (heisst in ww-config.js "supabaseAnonKey"), dann Zürich-Fallback
-      return (this.content && this.content.supabaseAnonKey) || 'sb_publishable_4rsRb_VB3l_45JO7sw0VSA_ODDS4CZc';
+      // Prop (heisst in ww-config.js "supabaseAnonKey"); Default kommt aus ww-config.js
+      return (this.content && this.content.supabaseAnonKey) || '';
     },
     token() {
       const t = ((this.content && this.content.authToken) || '').toString();
