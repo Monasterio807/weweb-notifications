@@ -266,7 +266,7 @@ export default {
       const uid = this.resolvedUserId;
       if (!uid) { this.items = []; return; }
       if (!this.apiKey || !this.token) {
-        this.errorMessage = 'Konfiguration unvollstaendig (Login fehlt).';
+        this.errorMessage = 'Bitte melde dich an, damit wir deine Benachrichtigungen laden können.';
         this.emitEvent('error', { reason: 'config' });
         return;
       }
