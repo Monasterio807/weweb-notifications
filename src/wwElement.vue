@@ -55,7 +55,7 @@
       </div>
 
       <!-- Fehler -->
-      <div v-else-if="errorMessage" class="hrk-state hrk-state--mini">
+      <div v-else-if="errorMessage" class="hrk-state hrk-state--mini" role="alert">
         <p class="hrk-state__title">{{ errorMessage }}</p>
         <button class="hrk-btn hrk-btn--secondary" @click="load">Erneut versuchen</button>
       </div>
