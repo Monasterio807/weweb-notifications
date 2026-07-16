@@ -541,6 +541,7 @@ export default {
   --hrk-creme:           #FBF8F3;
   --hrk-anthrazit:       #2B2B2B;
   --hrk-gold:            #C9A24B;
+  --hrk-on-primary:      #FFFFFF;  /* Text/Icons auf primaer/kraeftig gefaerbten Flaechen (z.B. Badge) */
 
   --hrk-surface:         #FFFFFF;
   --hrk-surface-muted:   #F5F1EB;
@@ -580,6 +581,8 @@ export default {
 }
 
 .hrk-root, .hrk-root * { box-sizing: border-box; }
+/* Design-Lint-Ausnahme: BEWUSST kein width:100% auf .hrk-root — die Glocke ist ein
+   Inline-Widget im Header (.hrk-notif = inline-flex), width:100% wuerde sie strecken. */
 .hrk-root {
   font-family: var(--hrk-font-body);
   font-size: var(--hrk-fs-body);
@@ -639,7 +642,7 @@ export default {
   position: absolute; top: 4px; right: 4px;
   min-width: 18px; height: 18px; padding: 0 5px;
   display: inline-flex; align-items: center; justify-content: center;
-  background: var(--hrk-danger); color: #fff;
+  background: var(--hrk-danger); color: var(--hrk-on-primary);
   font-size: 11px; font-weight: var(--hrk-fw-semibold); line-height: 1;
   border-radius: var(--hrk-radius-pill); border: 2px solid var(--hrk-surface);
   font-variant-numeric: tabular-nums;
