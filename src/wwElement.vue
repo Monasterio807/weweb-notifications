@@ -159,9 +159,29 @@ export default {
       // Prop (heisst in ww-config.js "supabaseAnonKey"); Default kommt aus ww-config.js
       return (this.content && this.content.supabaseAnonKey) || '';
     },
+    // Token live lesen: zuerst Property, sonst globalContext (WeWeb-Auth), sonst localStorage.
+    // Deckt den Prop-Hydration-Race ab und liefert nach einem Session-Refresh den frischen JWT.
     token() {
-      const t = ((this.content && this.content.authToken) || '').toString();
-      return t.replace(/^Bearer\s+/i, '');
+      const t = ((this.content && this.content.authToken) || '').toString().trim();
+      if (t) return t.replace(/^Bearer\s+/i, '');
+      try {
+        const auth = (typeof wwLib !== 'undefined' && wwLib.globalContext && wwLib.globalContext.auth) ? wwLib.globalContext.auth : null;
+        const at = auth && auth.session && auth.session.access_token;
+        if (at) return String(at).trim();
+      } catch (e) { /* ignore */ }
+      try {
+        const win = this.frontWindow();
+        const ls = win && win.localStorage;
+        if (ls) {
+          const raw = ls.getItem('sb-ztvqsxdudzdyqgeylujr-auth-token');
+          if (raw) {
+            const o = JSON.parse(raw);
+            const at = (o && o.access_token) || (o && o.currentSession && o.currentSession.access_token);
+            if (at) return String(at).trim();
+          }
+        }
+      } catch (e) { /* ignore */ }
+      return '';
     },
     authHeaders() {
       return { apikey: this.apiKey, Authorization: `Bearer ${this.token}` };
@@ -228,6 +248,47 @@ export default {
         if (timer) clearTimeout(timer);
       }
     },
+    // Bei 401 das Supabase-Token via GoTrue (refresh_token) erneuern — die WeWeb-Session
+    // laeuft nach 60 Min ab; ohne Refresh bleibt die Glocke sonst still auf «Sitzung abgelaufen».
+    async _refreshAuthToken() {
+      try {
+        const auth = (typeof wwLib !== 'undefined' && wwLib.globalContext && wwLib.globalContext.auth) ? wwLib.globalContext.auth : null;
+        const rt = auth && auth.session && auth.session.refresh_token;
+        if (!rt || !this.apiKey) return '';
+        const res = await this.fetchWithTimeout(`${this.baseUrl}/auth/v1/token?grant_type=refresh_token`, {
+          method: 'POST', headers: { apikey: this.apiKey, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refresh_token: rt }),
+        });
+        if (!res.ok) return '';
+        const ns = await res.json();
+        if (!ns || !ns.access_token) return '';
+        try {
+          const win = this.frontWindow();
+          const ls = win && win.localStorage;
+          const wwSess = { access_token: ns.access_token, token_type: ns.token_type, expires_in: ns.expires_in, expires_at: ns.expires_at, refresh_token: ns.refresh_token };
+          if (ls) {
+            ls.setItem('ww-auth-session', JSON.stringify(wwSess));
+            const ref = ((String(this.baseUrl || '').match(/https?:\/\/([a-z0-9]+)\.supabase\.co/i) || [])[1]) || 'ztvqsxdudzdyqgeylujr';
+            const k = `sb-${ref}-auth-token`; const cur = JSON.parse(ls.getItem(k) || '{}');
+            ls.setItem(k, JSON.stringify(Object.assign(cur, wwSess, { user: ns.user || cur.user })));
+          }
+          if (auth && auth.session) Object.assign(auth.session, wwSess);
+        } catch (e) { /* Writeback best-effort */ }
+        return ns.access_token;
+      } catch (e) { return ''; }
+    },
+    // fetch + bei 401 EINMAL Token erneuern und mit frischem Bearer wiederholen.
+    async fetchWithAuthRetry(url, options, ms) {
+      let res = await this.fetchWithTimeout(url, options, ms);
+      if (res && res.status === 401) {
+        const fresh = await this._refreshAuthToken();
+        if (fresh) {
+          const headers = Object.assign({}, (options && options.headers) || {}, { Authorization: `Bearer ${fresh}` });
+          res = await this.fetchWithTimeout(url, Object.assign({}, options || {}, { headers }), ms);
+        }
+      }
+      return res;
+    },
     emitEvent(name, payload) {
       this.$emit('trigger-event', { name, event: payload || {} });
     },
@@ -280,7 +341,7 @@ export default {
           + `&select=${fields}`
           + `&order=created_at.desc`
           + `&limit=${this.maxItems}`;
-        const res = await this.fetchWithTimeout(url, {
+        const res = await this.fetchWithAuthRetry(url, {
           headers: { ...this.authHeaders, Accept: 'application/json' },
         });
         if (res.status === 401) {
@@ -369,7 +430,7 @@ export default {
       this.items = this.items.filter((x) => x.id !== id);
       try {
         const url = `${this.baseUrl}/rest/v1/user_notifications?id=eq.${encodeURIComponent(id)}`;
-        const res = await this.fetchWithTimeout(url, {
+        const res = await this.fetchWithAuthRetry(url, {
           method: 'PATCH',
           headers: { ...this.authHeaders, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
           body: JSON.stringify({ is_read: true }),
@@ -393,7 +454,7 @@ export default {
       try {
         const url = `${this.baseUrl}/rest/v1/user_notifications`
           + `?user_id=eq.${encodeURIComponent(uid)}&is_read=eq.false`;
-        const res = await this.fetchWithTimeout(url, {
+        const res = await this.fetchWithAuthRetry(url, {
           method: 'PATCH',
           headers: { ...this.authHeaders, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
           body: JSON.stringify({ is_read: true }),
