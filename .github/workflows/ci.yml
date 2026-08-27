@@ -1,0 +1,116 @@
+# =============================================================================
+# CI — baut das WeWeb-Bundle und committet es zurueck
+# Herkunft: Mega-Audit 27.08.2026, Rang 6 (Auslieferungskette)
+#
+# WARUM DIESE DATEI IN JEDEM KOMPONENTEN-REPO LIEGT
+# WeWeb laedt nicht den Quelltext, sondern dist/manager.js aus diesem Repo.
+# Ohne diesen Ablauf muss jemand von Hand bauen und committen. Genau das ist
+# reihenweise vergessen worden: am 27.08.2026 waren 37 von 79 Bundles aelter
+# als ihr Quelltext, teils um 38 Tage. Die Korrekturen lagen im Repo und kamen
+# beim Kunden nie an.
+#
+# ABLAUF beim Push auf main (nur wenn sich am Bau-Material etwas geaendert hat):
+#   1. npm ci
+#   2. Test-Gate: ist scripts.test vorhanden, MUSS npm test gruen sein
+#   3. npm run build  -> ruft "weweb build name=weweb-notifications type=wwobject"
+#      Der Name steht in package.json, nicht hier. Er landet im Bundle und muss
+#      zu dem passen, was im WeWeb-Projekt gebunden ist.
+#   4. package.json loescht vorher dist/manager.js (prebuild) und prueft danach,
+#      dass es wieder da ist (postbuild). Beides ist noetig: die WeWeb-CLI meldet
+#      bei einem Fehler trotzdem Exit-Code 0, und webpack schreibt die Datei gar
+#      nicht erst neu, wenn der Inhalt gleich bliebe. Ohne das Loeschen sieht ein
+#      stiller Fehlschlag wie ein erfolgreicher Lauf aus.
+#   5. Hat dist sich geaendert -> auto-commit mit [skip ci] und Push
+#   6. WeWeb sieht den neuen Commit und legt eine neue «Uploaded»-Version an.
+#      Das Publish bleibt Richards Klick.
+#
+# paths: der Bau haengt an src/, ww-config.js und den beiden package-Dateien.
+# Aendert sich nur die README, laeuft nichts. dist/ steht bewusst NICHT drin,
+# sonst loeste der eigene Auto-Commit den naechsten Lauf aus.
+#
+# skip_tests gibt es nur ueber den Knopf «Run workflow», nie beim normalen Push.
+# =============================================================================
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'ww-config.js'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/ci.yml'
+  workflow_dispatch:
+    inputs:
+      skip_tests:
+        description: 'Tests ueberspringen (bewusster manueller Override)'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Bauen und dist committen
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Auschecken
+        uses: actions/checkout@v4
+        with:
+          token: ${{ github.token }}
+
+      - name: Node 20 einrichten
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Abhaengigkeiten installieren
+        run: npm ci
+
+      - name: Gibt es ein Test-Script?
+        id: has_test
+        run: |
+          if node -e "process.exit(require('./package.json').scripts && require('./package.json').scripts.test ? 0 : 1)"; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Tests
+        if: steps.has_test.outputs.present == 'true' && inputs.skip_tests != true
+        run: npm test
+
+      - name: Tests uebersprungen
+        if: steps.has_test.outputs.present != 'true' || inputs.skip_tests == true
+        run: echo "Kein Test-Script vorhanden oder Override gesetzt."
+
+      - name: Bauen
+        run: npm run build
+
+      - name: Hat dist sich geaendert?
+        id: diff
+        run: |
+          if [ -n "$(git status --porcelain dist/)" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Gebautes dist committen
+        if: steps.diff.outputs.changed == 'true'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Actions"
+          git add dist/
+          git commit -m "chore: dist neu gebaut [skip ci]"
+          git push
+
+      - name: Kein Commit noetig
+        if: steps.diff.outputs.changed != 'true'
+        run: echo "dist ist bereits aktuell."

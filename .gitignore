@@ -1,5 +1,7 @@
 node_modules/
-dist/
+# dist/ NICHT ignorieren (Mega-Audit 27.08.2026): WeWeb laedt das gebaute
+# Bundle dist/manager.js aus dem GitHub-Repo. Ist es ignoriert, erreicht keine
+# Korrektur je den Kunden.
 .DS_Store
 *.log
 
