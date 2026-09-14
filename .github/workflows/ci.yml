@@ -10,7 +10,7 @@
 # beim Kunden nie an.
 #
 # ABLAUF beim Push auf main (nur wenn sich am Bau-Material etwas geaendert hat):
-#   1. npm ci
+#   1. npm install (npm ci scheiterte: ohne Lockfile am setup-node-Cache, mit Lockfile an EBADPLATFORM, 02.09.2026)
 #   2. Test-Gate: ist scripts.test vorhanden, MUSS npm test gruen sein
 #   3. npm run build  -> ruft "weweb build name=weweb-notifications type=wwobject"
 #      Der Name steht in package.json, nicht hier. Er landet im Bundle und muss
@@ -68,10 +68,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
 
       - name: Abhaengigkeiten installieren
-        run: npm ci
+        run: npm install --no-audit --no-fund
 
       - name: Gibt es ein Test-Script?
         id: has_test
