@@ -63,7 +63,7 @@
       <!-- Leer -->
       <div v-else-if="!items.length" class="hrk-notif__empty">
         <div class="hrk-notif__empty-icon" aria-hidden="true">🔔</div>
-        <p class="hrk-state__title">Alles erledigt</p>
+        <p class="hrk-state__title">Keine neuen Nachrichten</p>
         <p class="hrk-muted hrk-small">Du hast gerade keine neuen Benachrichtigungen.</p>
       </div>
 
