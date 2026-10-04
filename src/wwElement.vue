@@ -205,7 +205,7 @@ export default {
       return this.unreadCount > 9 ? '9+' : String(this.unreadCount);
     },
     bellLabel() {
-      if (this.unreadCount > 0) return `Benachrichtigungen — ${this.unreadCount} ungelesen`;
+      if (this.unreadCount > 0) return `Benachrichtigungen, ${this.unreadCount} ungelesen`;
       return 'Benachrichtigungen';
     },
   },
@@ -346,12 +346,12 @@ export default {
         });
         if (res.status === 401) {
           this.items = [];
-          this.errorMessage = 'Sitzung abgelaufen — bitte neu anmelden.';
+          this.errorMessage = 'Sitzung abgelaufen. Bitte melde dich neu an.';
           this.emitEvent('error', { reason: 'auth' });
           return;
         }
         if (!res.ok) {
-          this.errorMessage = 'Benachrichtigungen konnten nicht geladen werden.';
+          this.errorMessage = 'Benachrichtigungen konnten nicht geladen werden. Versuche es nochmal.';
           this.emitEvent('error', { reason: 'http' });
           return;
         }
@@ -359,7 +359,7 @@ export default {
         this.items = Array.isArray(rows) ? rows : [];
         this.emitEvent('loaded', { count: this.items.length });
       } catch (e) {
-        this.errorMessage = 'Netzwerkfehler beim Laden.';
+        this.errorMessage = 'Benachrichtigungen konnten nicht geladen werden. Prüfe deine Internetverbindung und versuche es nochmal.';
         this.emitEvent('error', { reason: 'network' });
       } finally {
         this.loading = false;
