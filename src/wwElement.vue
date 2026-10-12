@@ -596,12 +596,12 @@ export default {
    Stand: 2026-06-17 · Variante A.
    ============================================================ */
 :root, .hrk-root {
-  --hrk-bordeaux:        #7B2D3B;
-  --hrk-bordeaux-dark:   #5E2129;
-  --hrk-bordeaux-soft:   #F3E7E9;
+  --hrk-bordeaux:        #72323C;
+  --hrk-bordeaux-dark:   #5A2630;
+  --hrk-bordeaux-soft:   #F1E7E9;
   --hrk-creme:           #FBF8F3;
   --hrk-anthrazit:       #2B2B2B;
-  --hrk-gold:            #C9A24B;
+  --hrk-gold:            #C3A359;
   --hrk-on-primary:      #FFFFFF;  /* Text/Icons auf primaer/kraeftig gefaerbten Flaechen (z.B. Badge) */
 
   --hrk-surface:         #FFFFFF;
@@ -744,7 +744,7 @@ export default {
 .hrk-notif__item--unread:hover { background: var(--hrk-bordeaux-soft); }
 .hrk-notif__icon { flex: none; font-size: 1.2rem; line-height: 1.4; }
 .hrk-icon { width: var(--hrk-icon-size-md, 20px); height: var(--hrk-icon-size-md, 20px); flex: none; }
-.hrk-icon--emily { color: var(--hrk-bordeaux, #7B2D3B); margin-top: 2px; }
+.hrk-icon--emily { color: var(--hrk-bordeaux, #72323C); margin-top: 2px; }
 .hrk-notif__body { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .hrk-notif__item-title { font-weight: var(--hrk-fw-semibold); }
 .hrk-notif__msg {
