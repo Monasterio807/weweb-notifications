@@ -42,7 +42,7 @@
         <button
           v-if="items.length"
           type="button"
-          class="hrk-btn hrk-btn--ghost hrk-notif__markall"
+          class="hrk-notif__markall"
           :disabled="markingAll"
           @click="markAllRead"
         >{{ markingAll ? 'Wird erledigt …' : 'Alle als gelesen markieren' }}</button>
@@ -57,7 +57,7 @@
       <!-- Fehler -->
       <div v-else-if="errorMessage" class="hrk-state hrk-state--mini" role="alert">
         <p class="hrk-state__title">{{ errorMessage }}</p>
-        <button class="hrk-btn hrk-btn--secondary" @click="load">Erneut versuchen</button>
+        <button type="button" class="hrk-notif__retry" @click="load">Erneut versuchen</button>
       </div>
 
       <!-- Leer -->
@@ -95,6 +95,22 @@
 </template>
 
 <script>
+// Schriften (Stil A, Entscheid 13.10.2026): Gloock (Titel), Archivo (Labels), Inter (Text). Der WeWeb-<head>
+// laedt sie nicht. Eigener Link-Id, damit das Paket von header-pro/footer (id hrk-fonts) nicht verdraengt
+// wird. Ohne Laden gelten Georgia bzw. System-Schrift.
+function hrkEnsureBrandFont() {
+  try {
+    const doc = (typeof wwLib !== 'undefined' && wwLib && typeof wwLib.getFrontDocument === 'function')
+      ? wwLib.getFrontDocument()
+      : (typeof document !== 'undefined' ? document : null);
+    if (!doc || !doc.head || doc.getElementById('hrk-fonts-marke')) return;
+    const link = doc.createElement('link');
+    link.id = 'hrk-fonts-marke'; link.rel = 'stylesheet';
+    link.href = 'https://fonts.googleapis.com/css2?family=Archivo:wght@500;600&family=Gloock&family=Inter:wght@400;500;600&display=swap';
+    doc.head.appendChild(link);
+  } catch (e) { /* Georgia als Rueckfall */ }
+}
+
 /**
  * WeWeb Coded Component — Benachrichtigungs-Bell (HRklar)
  * Glocke mit rotem Badge (Anzahl ungelesen, max "9+"), Dropdown mit den
@@ -231,6 +247,7 @@ export default {
     },
   },
   mounted() {
+    hrkEnsureBrandFont();
     this.restart();
   },
   beforeUnmount() {
@@ -591,174 +608,147 @@ export default {
 -->
 <style scoped>
 /* ============================================================
-   HR am Tisch — Design-Tokens (einheitliches App-Design)
-   1:1-Kopie aus Coded-Components-Vorlage/design-tokens.css.
-   Stand: 2026-06-17 · Variante A.
+   Imploya — Tokens (Stil A, Entscheid 13.10.2026). Nur --hrk-*, keine harten Farben im Bauteil.
    ============================================================ */
 :root, .hrk-root {
   --hrk-bordeaux:        #72323C;
   --hrk-bordeaux-dark:   #5A2630;
   --hrk-bordeaux-soft:   #F1E7E9;
-  --hrk-creme:           #FBF8F3;
-  --hrk-anthrazit:       #2B2B2B;
   --hrk-gold:            #C3A359;
-  --hrk-on-primary:      #FFFFFF;  /* Text/Icons auf primaer/kraeftig gefaerbten Flaechen (z.B. Badge) */
+  --hrk-gold-dark:       #A98A45;
+  --hrk-gold-hauch:      #FAF6EC;
+  --hrk-schiefer:        #33475B;
+  --hrk-schiefer-dark:   #243444;
+  --hrk-schiefer-hauch:  #F2F5F8;
+  --hrk-on-primary:      #FFFFFF;
 
   --hrk-surface:         #FFFFFF;
-  --hrk-surface-muted:   #F5F1EB;
-  --hrk-border:          #ECE5D9;
-  --hrk-border-strong:   #DAD2C6;
-  --hrk-text:            #2B2B2B;
+  --hrk-warmgrau:        #EFEBE7;
+  --hrk-linie:           #D6D0CA;
+  --hrk-text:            #241F1C;
   --hrk-text-muted:      #6B6357;
 
-  --hrk-success:         #2E7D5B;  --hrk-success-bg: #E5F1EB;
-  --hrk-warning:         #B7791F;  --hrk-warning-bg: #FBF1DD;
-  --hrk-danger:          #B23A48;  --hrk-danger-bg:  #F8E7E9;
-  --hrk-info:            #2F6F9F;  --hrk-info-bg:    #E6F0F7;
-  --hrk-neutral:         #6B6357;  --hrk-neutral-bg: #EFEAE2;
-
-  --hrk-font-head: "Fraunces", "Lora", Georgia, serif;
-  --hrk-font-body: "Inter", "Source Sans 3", system-ui, sans-serif;
-  --hrk-fs-h1: 1.9375rem;
-  --hrk-fs-h2: 1.375rem;
-  --hrk-fs-h3: 1.125rem;
+  --hrk-font-body:  "Inter", "Source Sans 3", system-ui, sans-serif;
+  --hrk-font-brand: "Gloock", Georgia, serif;
+  --hrk-font-label: "Archivo", "Inter", system-ui, sans-serif;
   --hrk-fs-body: 1.0625rem;
   --hrk-fs-small: 0.9375rem;
+  --hrk-fs-xs: 0.8125rem;
   --hrk-lh-body: 1.55;
-  --hrk-fw-regular: 400; --hrk-fw-medium: 500; --hrk-fw-semibold: 600;
+  --hrk-fw-medium: 500; --hrk-fw-semibold: 600;
 
   --hrk-space-1: 4px;  --hrk-space-2: 8px;  --hrk-space-3: 12px;
   --hrk-space-4: 16px; --hrk-space-5: 24px; --hrk-space-6: 32px;
-  --hrk-space-7: 48px;
 
-  --hrk-radius-sm: 8px; --hrk-radius-md: 12px; --hrk-radius-lg: 14px;
-  --hrk-radius-pill: 999px;
-  --hrk-shadow-card: 0 1px 2px rgba(40,35,30,.05);
-  --hrk-shadow-pop:  0 8px 28px rgba(40,35,30,.12);
-  --hrk-focus-ring:  0 0 0 3px rgba(123,45,59,.30);
-
+  --hrk-radius-sm: 4px; --hrk-radius-md: 6px;
+  --hrk-shadow-pop: 0 2px 8px rgba(40,35,30,.08);
   --hrk-tap-min: 44px;
-  --hrk-page-max: 880px;
 }
 
 .hrk-root, .hrk-root * { box-sizing: border-box; }
 /* Design-Lint-Ausnahme: BEWUSST kein width:100% auf .hrk-root — die Glocke ist ein
    Inline-Widget im Header (.hrk-notif = inline-flex), width:100% wuerde sie strecken. */
 .hrk-root {
-  font-family: var(--hrk-font-body);
-  font-size: var(--hrk-fs-body);
-  line-height: var(--hrk-lh-body);
-  color: var(--hrk-text);
-  -webkit-font-smoothing: antialiased;
+  font-family: var(--hrk-font-body); font-size: var(--hrk-fs-body); line-height: var(--hrk-lh-body);
+  color: var(--hrk-text); -webkit-font-smoothing: antialiased;
 }
 .hrk-muted { color: var(--hrk-text-muted); }
 .hrk-small { font-size: var(--hrk-fs-small); }
+.hrk-root button:focus-visible { outline: 2px solid var(--hrk-schiefer); outline-offset: 2px; box-shadow: none; }
 
-/* ---------------- Knoepfe (aus Design-System) ---------------- */
-.hrk-btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: var(--hrk-space-2);
-  min-height: var(--hrk-tap-min); padding: 0 var(--hrk-space-5);
-  font: inherit; font-weight: var(--hrk-fw-semibold);
-  border-radius: var(--hrk-radius-md); border: 1px solid transparent;
-  cursor: pointer; text-decoration: none; transition: background .15s, border-color .15s, transform .05s;
-}
-.hrk-btn:active { transform: translateY(1px); }
-.hrk-btn:focus-visible { outline: none; box-shadow: var(--hrk-focus-ring); }
-.hrk-btn--secondary { background: var(--hrk-surface); color: var(--hrk-bordeaux); border-color: var(--hrk-border-strong); }
-.hrk-btn--secondary:hover { background: var(--hrk-bordeaux-soft); }
-.hrk-btn--ghost     { background: transparent; color: var(--hrk-bordeaux); }
-.hrk-btn--ghost:hover { background: var(--hrk-bordeaux-soft); }
-.hrk-btn[disabled] { opacity: .5; cursor: not-allowed; }
-
-/* ---------------- Zustaende (aus Design-System) ---------------- */
+/* ---------------- Zustaende ---------------- */
 .hrk-state { display: flex; flex-direction: column; align-items: center; gap: var(--hrk-space-3);
-  padding: var(--hrk-space-7) var(--hrk-space-4); color: var(--hrk-text-muted); text-align: center; }
-.hrk-state--mini { padding: var(--hrk-space-6) var(--hrk-space-3); }
+  padding: var(--hrk-space-6) var(--hrk-space-3); color: var(--hrk-text-muted); text-align: center; }
 .hrk-state__title { color: var(--hrk-text); font-weight: var(--hrk-fw-semibold); margin: 0; }
-.hrk-spinner { width: 28px; height: 28px; border: 3px solid var(--hrk-border);
-  border-top-color: var(--hrk-bordeaux); border-radius: 50%; animation: hrk-spin .8s linear infinite; }
+.hrk-spinner { width: 24px; height: 24px; border: 2px solid var(--hrk-linie);
+  border-top-color: var(--hrk-schiefer); border-radius: 50%; animation: hrk-spin .8s linear infinite; }
 @keyframes hrk-spin { to { transform: rotate(360deg); } }
 
 /* ============================================================
-   Komponenten-eigene Bausteine: Glocke + Dropdown (.hrk-notif-*)
-   Nur aus --hrk-* Tokens — keine harten Farben/Masse.
+   Glocke + Dropdown (.hrk-notif-*): Linien statt Karten
    ============================================================ */
 .hrk-notif { position: relative; display: inline-flex; }
 
-/* Glocke */
+/* Glocke: Tap-Ziel 44 x 44 */
 .hrk-notif__bell {
   position: relative;
   display: inline-flex; align-items: center; justify-content: center;
   width: var(--hrk-tap-min); height: var(--hrk-tap-min);
-  padding: 0; border: 1px solid transparent; border-radius: var(--hrk-radius-pill);
-  background: transparent; color: var(--hrk-anthrazit);
+  padding: 0; border: 0; border-radius: var(--hrk-radius-md);
+  background: transparent; color: var(--hrk-text);
   cursor: pointer; transition: background .15s, color .15s;
 }
-.hrk-notif__bell:hover { background: var(--hrk-bordeaux-soft); color: var(--hrk-bordeaux); }
-.hrk-notif__bell:focus-visible { outline: none; box-shadow: var(--hrk-focus-ring); }
-.hrk-notif__bell--active { background: var(--hrk-bordeaux-soft); color: var(--hrk-bordeaux); }
+.hrk-notif__bell:hover { background: var(--hrk-schiefer-hauch); color: var(--hrk-schiefer); }
+.hrk-notif__bell--active { color: var(--hrk-schiefer); box-shadow: inset 0 -2px 0 var(--hrk-gold); border-radius: 0; }
 
-/* Badge */
+/* Badge: kleine Schiefer-Zahl (Signal, keine Aktion) */
 .hrk-notif__badge {
-  position: absolute; top: 4px; right: 4px;
+  position: absolute; top: 4px; right: 3px;
   min-width: 18px; height: 18px; padding: 0 5px;
   display: inline-flex; align-items: center; justify-content: center;
-  background: var(--hrk-danger); color: var(--hrk-on-primary);
+  background: var(--hrk-schiefer); color: var(--hrk-on-primary);
   font-size: 11px; font-weight: var(--hrk-fw-semibold); line-height: 1;
-  border-radius: var(--hrk-radius-pill); border: 2px solid var(--hrk-surface);
+  border-radius: 9px; border: 2px solid var(--hrk-surface);
   font-variant-numeric: tabular-nums;
 }
 
-/* Dropdown-Panel */
+/* Dropdown-Panel: Hairline-Rahmen, kaum Schatten */
 .hrk-notif__panel {
   position: absolute; top: calc(100% + var(--hrk-space-2)); right: 0; z-index: 1000;
-  width: 320px; max-width: calc(100vw - var(--hrk-space-5));
+  width: 340px; max-width: calc(100vw - var(--hrk-space-5));
   background: var(--hrk-surface);
-  border: 1px solid var(--hrk-border); border-radius: var(--hrk-radius-lg);
+  border: 1px solid var(--hrk-linie); border-radius: var(--hrk-radius-md);
   box-shadow: var(--hrk-shadow-pop);
   overflow: hidden;
 }
 .hrk-notif__head {
-  display: flex; align-items: center; justify-content: space-between; gap: var(--hrk-space-2);
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--hrk-space-1) var(--hrk-space-3);
   padding: var(--hrk-space-3) var(--hrk-space-4);
-  border-bottom: 1px solid var(--hrk-border); background: var(--hrk-surface-muted);
+  border-bottom: 1px solid var(--hrk-linie); background: var(--hrk-surface);
 }
-.hrk-notif__title { font-weight: var(--hrk-fw-semibold); color: var(--hrk-text); }
-.hrk-notif__markall {
-  min-height: auto; padding: var(--hrk-space-1) var(--hrk-space-2);
-  font-size: var(--hrk-fs-small); border-radius: var(--hrk-radius-sm);
+/* Titel: Gloock (Marken-Titel) */
+.hrk-notif__title { font-family: var(--hrk-font-brand); font-weight: 400; font-size: 1.25rem; line-height: 1.2; letter-spacing: -.01em; color: var(--hrk-text); }
+/* Sammelaktion: Schiefer-Text, Gold-Unterstrich, kein Kasten */
+.hrk-notif__markall, .hrk-notif__retry {
+  display: inline-flex; align-items: center; min-height: var(--hrk-tap-min);
+  background: none; border: 0; border-bottom: 2px solid var(--hrk-gold); border-radius: 0; padding: 4px 0;
+  font: 600 var(--hrk-fs-small)/1.3 var(--hrk-font-body); color: var(--hrk-schiefer); cursor: pointer;
 }
+.hrk-notif__markall { min-height: 32px; font-size: var(--hrk-fs-xs); white-space: nowrap; }
+.hrk-notif__markall:hover, .hrk-notif__retry:hover { color: var(--hrk-schiefer-dark); border-bottom-color: var(--hrk-gold-dark); }
+.hrk-notif__markall[disabled] { opacity: .5; cursor: not-allowed; }
 
-/* Liste */
+/* Liste: Zeilen mit Hairline-Trenner */
 .hrk-notif__list { list-style: none; margin: 0; padding: 0; max-height: 400px; overflow-y: auto; }
 .hrk-notif__item {
   display: flex; align-items: flex-start; gap: var(--hrk-space-3); width: 100%;
   padding: var(--hrk-space-3) var(--hrk-space-4); text-align: left;
-  background: transparent; border: 0; border-bottom: 1px solid var(--hrk-border);
+  background: transparent; border: 0; border-bottom: 1px solid var(--hrk-linie); border-left: 2px solid transparent;
   cursor: pointer; font: inherit; color: var(--hrk-text); transition: background .15s;
 }
-.hrk-notif__item:hover { background: var(--hrk-surface-muted); }
-.hrk-notif__item:focus-visible { outline: none; box-shadow: var(--hrk-focus-ring); }
-.hrk-notif__item:last-child { border-bottom: 0; }
-.hrk-notif__item--unread { background: var(--hrk-bordeaux-soft); }
-.hrk-notif__item--unread:hover { background: var(--hrk-bordeaux-soft); }
+.hrk-notif__item:hover { background: var(--hrk-schiefer-hauch); }
+.hrk-notif__item:focus-visible { outline: 2px solid var(--hrk-schiefer); outline-offset: -2px; box-shadow: none; }
+.hrk-notif__list li:last-child .hrk-notif__item { border-bottom: 0; }
+/* ungelesen: Gold-Linie links + zarter Gold-Hauch */
+.hrk-notif__item--unread { background: var(--hrk-gold-hauch); border-left-color: var(--hrk-gold); }
+.hrk-notif__item--unread:hover { background: var(--hrk-gold-hauch); }
 .hrk-notif__icon { flex: none; font-size: 1.2rem; line-height: 1.4; }
-.hrk-icon { width: var(--hrk-icon-size-md, 20px); height: var(--hrk-icon-size-md, 20px); flex: none; }
-.hrk-icon--emily { color: var(--hrk-bordeaux, #72323C); margin-top: 2px; }
+.hrk-icon { width: 20px; height: 20px; flex: none; }
+.hrk-icon--emily { color: var(--hrk-bordeaux); margin-top: 2px; }
 .hrk-notif__body { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .hrk-notif__item-title { font-weight: var(--hrk-fw-semibold); }
 .hrk-notif__msg {
   color: var(--hrk-text-muted); font-size: var(--hrk-fs-small);
   overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
 }
-.hrk-notif__time { color: var(--hrk-text-muted); font-size: 0.8125rem; margin-top: 2px; }
+.hrk-notif__time { color: var(--hrk-text-muted); font-family: var(--hrk-font-label); font-size: var(--hrk-fs-xs); font-weight: var(--hrk-fw-medium); letter-spacing: .06em; margin-top: 2px; }
 
 /* Leerzustand */
 .hrk-notif__empty { text-align: center; color: var(--hrk-text-muted); padding: var(--hrk-space-6) var(--hrk-space-4); }
 .hrk-notif__empty-icon { font-size: 1.75rem; line-height: 1; margin-bottom: var(--hrk-space-2); }
 
-/* Handy: Panel etwas breiter, am rechten Rand verankert */
+/* Handy */
 @media (max-width: 600px) {
-  .hrk-notif__panel { width: 300px; }
+  .hrk-notif__panel { width: 320px; }
 }
 </style>
