@@ -6,6 +6,12 @@ export const ANFRAGE_TITEL = 'Neue Frage an dich';
 export const POPUP_SCHLUESSEL = 'hrk_neue_anfragen_popup';
 export const ANFRAGEN_URL_STANDARD = '/verwaltung?tab=anfragen';
 
+// Zahl aus dem Header «Content-Range» (z. B. «0-0/12», «*/0»). Unbekannt oder kaputt gibt 0.
+export function zahlAusContentRange(wert) {
+  const m = /\/(\d+)\s*$/.exec(String(wert || ''));
+  return m ? parseInt(m[1], 10) : 0;
+}
+
 export function anzahlNeueAnfragen(items) {
   if (!Array.isArray(items)) return 0;
   return items.filter((n) => n && n.title === ANFRAGE_TITEL && n.is_read !== true).length;

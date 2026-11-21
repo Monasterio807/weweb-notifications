@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
 import Komponente from './wwElement.vue';
-import { anzahlNeueAnfragen, popupSatz, schonGezeigt, alsGezeigtMerken, sichereUrl, POPUP_SCHLUESSEL } from './anfragen-popup.js';
+import { zahlAusContentRange, anzahlNeueAnfragen, popupSatz, schonGezeigt, alsGezeigtMerken, sichereUrl, POPUP_SCHLUESSEL } from './anfragen-popup.js';
 
 const FRAGE = (id, gelesen = false) => ({ id, type: 'emily', title: 'Neue Frage an dich', message: 'Erfundener Betrieb hat Emily gebeten, dir eine Frage weiterzuleiten.', is_read: gelesen, action_url: '/verwaltung?tab=cockpit', created_at: '2026-11-21T08:00:00Z' });
 const ANDERE = { id: 'x', type: 'system', title: 'Willkommen', message: 'Hallo', is_read: false, action_url: '', created_at: '2026-11-21T07:00:00Z' };
@@ -44,7 +44,14 @@ describe('Komponente', () => {
     zeilen = [FRAGE('a'), FRAGE('b'), ANDERE];
     sessionStorage.clear();
     globalThis.wwLib = { wwVariable: { useComponentVariable: () => ({ value: { value: 0 }, setValue() {} }) }, getFrontWindow: () => window };
-    globalThis.fetch = vi.fn(async () => new Response(JSON.stringify(zeilen), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    globalThis.fetch = vi.fn(async (url) => {
+      const u = String(url);
+      if (/select=id(&|$)/.test(u)) {
+        const n = zeilen.filter((z) => z.title === 'Neue Frage an dich' && z.is_read !== true).length;
+        return new Response('[]', { status: 200, headers: { 'Content-Type': 'application/json', 'Content-Range': `0-0/${n}` } });
+      }
+      return new Response(JSON.stringify(zeilen), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    });
   });
   const bauen = () => mount(Komponente, { props: { content: { authToken: 'test-token', userId: 'u-1', supabaseAnonKey: 'test-key', supabaseUrl: 'https://example.test', realtime: false, anfragenUrl: '/verwaltung?tab=anfragen' }, uid: 'test' } });
 
@@ -61,6 +68,34 @@ describe('Komponente', () => {
     const w2 = bauen(); await flushPromises();
     expect(w2.find('[aria-modal="true"]').exists()).toBe(false);
     w2.unmount();
+  });
+  it('zählt über eine eigene Abfrage, auch wenn die Glocke die Fragen nicht lädt', async () => {
+    // Die Glocke lädt nur 10 neueste Zeilen (lauter andere), die 12 Fragen liegen weiter hinten.
+    const viele = Array.from({ length: 12 }, (_, i) => FRAGE('q' + i));
+    zeilen = viele;
+    const orig = globalThis.fetch;
+    globalThis.fetch = vi.fn(async (url, opt) => {
+      const u = String(url);
+      if (u.includes('limit=10')) return new Response(JSON.stringify(Array.from({ length: 10 }, (_, i) => ({ ...ANDERE, id: 'x' + i }))), { status: 200, headers: { 'Content-Type': 'application/json' } });
+      return orig(url, opt);
+    });
+    const w = bauen(); await flushPromises();
+    const dlg = w.find('[role="dialog"][aria-modal="true"]');
+    expect(dlg.exists()).toBe(true);
+    expect(dlg.text()).toContain('12 Fragen warten auf dich.');
+    const zaehl = globalThis.fetch.mock.calls.map((c) => String(c[0])).find((u) => /select=id(&|$)/.test(u));
+    expect(zaehl).toContain('is_read=eq.false');
+    expect(zaehl).toContain(encodeURIComponent('Neue Frage an dich'));
+    const hdr = globalThis.fetch.mock.calls.find((c) => /select=id(&|$)/.test(String(c[0])))[1].headers;
+    expect(hdr.Prefer).toBe('count=exact');
+    expect((globalThis.fetch.mock.calls.find((c) => /select=id(&|$)/.test(String(c[0])))[1].method || 'GET')).toBe('GET');
+    w.unmount();
+  });
+  it('liest die Zahl aus Content-Range', () => {
+    expect(zahlAusContentRange('0-0/12')).toBe(12);
+    expect(zahlAusContentRange('*/0')).toBe(0);
+    expect(zahlAusContentRange('0-0/*')).toBe(0);
+    expect(zahlAusContentRange(null)).toBe(0);
   });
   it('zeigt kein Pop-up ohne neue Fragen', async () => {
     zeilen = [ANDERE];

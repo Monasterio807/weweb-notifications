@@ -113,7 +113,7 @@
 </template>
 
 <script>
-import { anzahlNeueAnfragen, popupSatz, schonGezeigt, alsGezeigtMerken, sichereUrl } from './anfragen-popup.js';
+import { zahlAusContentRange, ANFRAGE_TITEL, popupSatz, schonGezeigt, alsGezeigtMerken, sichereUrl } from './anfragen-popup.js';
 /**
  * WeWeb Coded Component — Benachrichtigungs-Bell (HRklar)
  * Glocke mit rotem Badge (Anzahl ungelesen, max "9+"), Dropdown mit den
@@ -396,11 +396,29 @@ export default {
         return (win && win.sessionStorage) || null;
       } catch (e) { return null; }
     },
-    popupPruefen() {
+    // Eigene, nur lesende Zählabfrage: unabhängig davon, wie viele Zeilen die Glocke lädt (maxItems).
+    async anfragenZaehlen() {
+      const uid = this.resolvedUserId;
+      if (!uid || !this.apiKey || !this.token) return 0;
+      try {
+        const url = `${this.baseUrl}/rest/v1/user_notifications`
+          + `?user_id=eq.${encodeURIComponent(uid)}`
+          + `&is_read=eq.false`
+          + `&title=eq.${encodeURIComponent(ANFRAGE_TITEL)}`
+          + `&select=id&limit=1`;
+        const res = await this.fetchWithAuthRetry(url, {
+          headers: { ...this.authHeaders, Accept: 'application/json', Prefer: 'count=exact' },
+        });
+        if (!res || !res.ok) return 0;
+        return zahlAusContentRange(res.headers && res.headers.get('Content-Range'));
+      } catch (e) { return 0; }
+    },
+    async popupPruefen() {
       if (this.popupOffen) return;
-      const n = anzahlNeueAnfragen(this.items);
-      if (n < 1) return;
       const speicher = this.popupSpeicher();
+      if (schonGezeigt(speicher)) return;
+      const n = await this.anfragenZaehlen();
+      if (n < 1 || this.popupOffen) return;
       if (schonGezeigt(speicher)) return;
       alsGezeigtMerken(speicher);
       this.popupAnzahl = n;
