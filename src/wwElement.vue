@@ -2,6 +2,7 @@
   <div class="hrk-root hrk-notif">
     <!-- Glocke + Badge -->
     <button
+      ref="bell"
       type="button"
       class="hrk-notif__bell"
       :class="{ 'hrk-notif__bell--active': open }"
@@ -421,6 +422,7 @@ export default {
       if (n < 1 || this.popupOffen) return;
       if (schonGezeigt(speicher)) return;
       alsGezeigtMerken(speicher);
+      try { this.fokusVorher = typeof document !== 'undefined' ? document.activeElement : null; } catch (e) { this.fokusVorher = null; }
       this.popupAnzahl = n;
       this.popupOffen = true;
       this.emitEvent('popup-opened', { count: n });
@@ -428,9 +430,23 @@ export default {
     },
     popupSchliessen() {
       this.popupOffen = false;
+      this.fokusZurueck();
+    },
+    // Fokus zurück auf das Element von vorher; war es nur die Seite selbst, auf die Glocke.
+    fokusZurueck() {
+      this.$nextTick(() => {
+        try {
+          const v = this.fokusVorher;
+          const ok = v && typeof v.focus === 'function' && typeof document !== 'undefined' && v !== document.body && document.contains(v);
+          const ziel = ok ? v : this.$refs.bell;
+          if (ziel && typeof ziel.focus === 'function') ziel.focus();
+        } catch (e) { /* ignore */ }
+        this.fokusVorher = null;
+      });
     },
     popupAnsehenKlick() {
       this.popupOffen = false;
+      this.fokusVorher = null; // die Seite wechselt gleich, kein Fokus zurück
       const url = sichereUrl(this.content && this.content.anfragenUrl);
       this.emitEvent('popup-clicked', { url });
       const win = this.frontWindow();
@@ -719,6 +735,7 @@ export default {
   --hrk-shadow-pop:  0 8px 28px rgba(40,35,30,.12);
   --hrk-focus-ring:  0 0 0 3px rgba(123,45,59,.30);
 
+  --hrk-overlay: rgba(20,24,28,.55); /* wie design-tokens.css */
   --hrk-tap-min: 44px;
   --hrk-page-max: 880px;
 }
@@ -849,7 +866,7 @@ export default {
   position: fixed; inset: 0; z-index: 1000;
   display: flex; align-items: center; justify-content: center;
   padding: var(--hrk-space-4);
-  background: rgba(43, 43, 43, 0.45);
+  background: var(--hrk-overlay);
 }
 .hrk-notif__popup {
   width: 100%; max-width: 420px; box-sizing: border-box;

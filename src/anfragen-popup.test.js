@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
 import Komponente from './wwElement.vue';
@@ -111,6 +112,20 @@ describe('Komponente', () => {
     await w.find('[role="dialog"][aria-modal="true"]').trigger('keydown', { key: 'Escape' });
     expect(w.find('[aria-modal="true"]').exists()).toBe(false);
     w.unmount();
+  });
+  it('Nach dem Schliessen geht der Fokus zurück auf die Glocke', async () => {
+    const w = mount(Komponente, { attachTo: document.body, props: { content: { authToken: 't', userId: 'u-1', supabaseAnonKey: 'k', supabaseUrl: 'https://example.test', realtime: false }, uid: 'test' } });
+    await flushPromises(); await w.vm.$nextTick();
+    expect(document.activeElement.textContent).toBe('Ansehen');
+    await w.find('button.hrk-notif__textbtn--leise').trigger('click');
+    await w.vm.$nextTick();
+    expect(document.activeElement).toBe(w.find('button.hrk-notif__bell').element);
+    w.unmount();
+  });
+  it('Der Hintergrund des Pop-ups nutzt ein Token statt einer harten Farbe', () => {
+    const quelle = readFileSync(new URL('./wwElement.vue', import.meta.url), 'utf8');
+    expect(quelle).not.toMatch(/rgba\(43,\s*43,\s*43/);
+    expect(quelle).toMatch(/\.hrk-notif__scrim[^}]*var\(--hrk-overlay\)/);
   });
   it('«Ansehen» sendet das Ereignis mit der eigenen Adresse', async () => {
     const w = bauen(); await flushPromises();
