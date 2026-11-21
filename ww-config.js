@@ -56,6 +56,19 @@ export default {
       },
       /* wwEditor:end */
     },
+    anfragenUrl: {
+      label: { en: 'Pop-up target (new requests)', de: 'Pop-up-Ziel (Neue Anfragen)' },
+      type: 'Text',
+      section: 'settings',
+      defaultValue: '/verwaltung?tab=anfragen',
+      bindable: true,
+      /* wwEditor:start */
+      bindingValidation: {
+        type: 'string',
+        tooltip: 'Seite, die der Knopf «Ansehen» im Pop-up öffnet. Nur Adressen der eigenen App (beginnen mit /).',
+      },
+      /* wwEditor:end */
+    },
     maxItems: {
       label: { en: 'Max items', de: 'Max. Eintraege' },
       type: 'Number',

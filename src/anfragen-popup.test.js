@@ -1,0 +1,88 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { mount, flushPromises } from '@vue/test-utils';
+import Komponente from './wwElement.vue';
+import { anzahlNeueAnfragen, popupSatz, schonGezeigt, alsGezeigtMerken, sichereUrl, POPUP_SCHLUESSEL } from './anfragen-popup.js';
+
+const FRAGE = (id, gelesen = false) => ({ id, type: 'emily', title: 'Neue Frage an dich', message: 'Erfundener Betrieb hat Emily gebeten, dir eine Frage weiterzuleiten.', is_read: gelesen, action_url: '/verwaltung?tab=cockpit', created_at: '2026-11-21T08:00:00Z' });
+const ANDERE = { id: 'x', type: 'system', title: 'Willkommen', message: 'Hallo', is_read: false, action_url: '', created_at: '2026-11-21T07:00:00Z' };
+
+describe('Logik', () => {
+  it('zählt nur ungelesene «Neue Frage an dich»', () => {
+    expect(anzahlNeueAnfragen([FRAGE('a'), FRAGE('b', true), ANDERE])).toBe(1);
+    expect(anzahlNeueAnfragen([])).toBe(0);
+    expect(anzahlNeueAnfragen(null)).toBe(0);
+  });
+  it('Sätze', () => {
+    expect(popupSatz(0)).toBe('');
+    expect(popupSatz(1)).toBe('1 Frage wartet auf dich.');
+    expect(popupSatz(3)).toBe('3 Fragen warten auf dich.');
+  });
+  it('merkt sich je Sitzung und übersteht fehlenden Speicher', () => {
+    const m = new Map();
+    const sp = { getItem: (k) => m.get(k) ?? null, setItem: (k, v) => m.set(k, v) };
+    expect(schonGezeigt(sp)).toBe(false);
+    alsGezeigtMerken(sp);
+    expect(schonGezeigt(sp)).toBe(true);
+    expect(m.get(POPUP_SCHLUESSEL)).toBe('1');
+    const kaputt = { getItem() { throw new Error('gesperrt'); }, setItem() { throw new Error('gesperrt'); } };
+    expect(schonGezeigt(kaputt)).toBe(false);
+    expect(() => alsGezeigtMerken(kaputt)).not.toThrow();
+    expect(schonGezeigt(null)).toBe(false);
+  });
+  it('lässt nur eigene Adressen zu', () => {
+    expect(sichereUrl('/verwaltung?tab=anfragen')).toBe('/verwaltung?tab=anfragen');
+    expect(sichereUrl('https://fremd.example/x')).toBe('/verwaltung?tab=anfragen');
+    expect(sichereUrl('//fremd.example')).toBe('/verwaltung?tab=anfragen');
+    expect(sichereUrl('javascript:alert(1)')).toBe('/verwaltung?tab=anfragen');
+    expect(sichereUrl('')).toBe('/verwaltung?tab=anfragen');
+  });
+});
+
+describe('Komponente', () => {
+  let zeilen;
+  beforeEach(() => {
+    zeilen = [FRAGE('a'), FRAGE('b'), ANDERE];
+    sessionStorage.clear();
+    globalThis.wwLib = { wwVariable: { useComponentVariable: () => ({ value: { value: 0 }, setValue() {} }) }, getFrontWindow: () => window };
+    globalThis.fetch = vi.fn(async () => new Response(JSON.stringify(zeilen), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+  });
+  const bauen = () => mount(Komponente, { props: { content: { authToken: 'test-token', userId: 'u-1', supabaseAnonKey: 'test-key', supabaseUrl: 'https://example.test', realtime: false, anfragenUrl: '/verwaltung?tab=anfragen' }, uid: 'test' } });
+
+  it('zeigt das Pop-up einmal und nennt die Zahl', async () => {
+    const w = bauen(); await flushPromises();
+    const dlg = w.find('[role="dialog"][aria-modal="true"]');
+    expect(dlg.exists()).toBe(true);
+    expect(dlg.text()).toContain('2 Fragen warten auf dich.');
+    expect(sessionStorage.getItem(POPUP_SCHLUESSEL)).toBe('1');
+    await w.find('button.hrk-notif__textbtn--leise').trigger('click');
+    expect(w.find('[aria-modal="true"]').exists()).toBe(false);
+    w.unmount();
+    // zweiter Aufruf in derselben Sitzung: kein Pop-up
+    const w2 = bauen(); await flushPromises();
+    expect(w2.find('[aria-modal="true"]').exists()).toBe(false);
+    w2.unmount();
+  });
+  it('zeigt kein Pop-up ohne neue Fragen', async () => {
+    zeilen = [ANDERE];
+    const w = bauen(); await flushPromises();
+    expect(w.find('[aria-modal="true"]').exists()).toBe(false);
+    expect(sessionStorage.getItem(POPUP_SCHLUESSEL)).toBe(null);
+    w.unmount();
+  });
+  it('Escape schliesst, Fokus startet auf «Ansehen»', async () => {
+    const w = mount(Komponente, { attachTo: document.body, props: { content: { authToken: 't', userId: 'u-1', supabaseAnonKey: 'k', supabaseUrl: 'https://example.test', realtime: false }, uid: 'test' } });
+    await flushPromises(); await w.vm.$nextTick();
+    expect(document.activeElement.textContent).toBe('Ansehen');
+    await w.find('[role="dialog"][aria-modal="true"]').trigger('keydown', { key: 'Escape' });
+    expect(w.find('[aria-modal="true"]').exists()).toBe(false);
+    w.unmount();
+  });
+  it('«Ansehen» sendet das Ereignis mit der eigenen Adresse', async () => {
+    const w = bauen(); await flushPromises();
+    await w.find('button.hrk-notif__textbtn:not(.hrk-notif__textbtn--leise)').trigger('click');
+    const e = w.emitted('trigger-event') || [];
+    const klick = e.map((x) => x[0]).find((x) => x && x.name === 'popup-clicked');
+    expect(klick.event.url).toBe('/verwaltung?tab=anfragen');
+    w.unmount();
+  });
+});

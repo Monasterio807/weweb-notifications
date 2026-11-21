@@ -7,10 +7,17 @@
     "build": "weweb build name=weweb-notifications type=wwobject",
     "prebuild": "node -e \"require('fs').rmSync('dist/manager.js',{force:true})\"",
     "postbuild": "node -e \"const fs=require('fs');let s;try{s=fs.statSync('dist/manager.js')}catch(e){};if(!s||s.size<1000){console.error('Bau fehlgeschlagen: dist/manager.js wurde nicht geschrieben.');process.exit(1)}\"",
-    "serve": "weweb serve"
+    "serve": "weweb serve",
+    "test": "vitest run"
   },
   "devDependencies": {
-    "@weweb/cli": "latest"
+    "@weweb/cli": "latest",
+    "@vitejs/plugin-vue": "^6.0.7",
+    "@vue/test-utils": "^2.4.11",
+    "jsdom": "^29.1.1",
+    "sass": "^1.101.0",
+    "vitest": "^4.1.9",
+    "vue": "^3.5.39"
   },
   "license": "UNLICENSED"
 }

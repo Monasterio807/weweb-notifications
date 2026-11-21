@@ -91,10 +91,29 @@
         </li>
       </ul>
     </div>
+      <!-- Pop-up bei der Anmeldung: neue Fragen von Betrieben (einmal je Sitzung) -->
+    <div v-if="popupOffen" class="hrk-notif__scrim" @click.self="popupSchliessen">
+      <div
+        class="hrk-notif__popup"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="hrk-notif-popup-titel"
+        @keydown.esc.stop.prevent="popupSchliessen"
+        @keydown.tab="popupTab"
+      >
+        <h2 id="hrk-notif-popup-titel" class="hrk-notif__popup-title">Neue Anfragen</h2>
+        <p class="hrk-notif__popup-text">{{ popupText }}</p>
+        <div class="hrk-notif__popup-actions">
+          <button ref="popupAnsehen" type="button" class="hrk-notif__textbtn" @click="popupAnsehenKlick">Ansehen</button>
+          <button ref="popupSpaeter" type="button" class="hrk-notif__textbtn hrk-notif__textbtn--leise" @click="popupSchliessen">Später</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script>
+import { anzahlNeueAnfragen, popupSatz, schonGezeigt, alsGezeigtMerken, sichereUrl } from './anfragen-popup.js';
 /**
  * WeWeb Coded Component — Benachrichtigungs-Bell (HRklar)
  * Glocke mit rotem Badge (Anzahl ungelesen, max "9+"), Dropdown mit den
@@ -147,9 +166,13 @@ export default {
       reloadTimer: null,
       // Klick-ausserhalb
       docClickHandler: null,
+      // Pop-up «Neue Anfragen»
+      popupOffen: false,
+      popupAnzahl: 0,
     };
   },
   computed: {
+    popupText() { return popupSatz(this.popupAnzahl); },
     baseUrl() {
       let url = (this.content && this.content.supabaseUrl) || 'https://ztvqsxdudzdyqgeylujr.supabase.co';
       if (/nemxnflngcfrpamkuesm/.test(String(url))) url = 'https://ztvqsxdudzdyqgeylujr.supabase.co';
@@ -358,12 +381,53 @@ export default {
         const rows = await res.json().catch(() => []);
         this.items = Array.isArray(rows) ? rows : [];
         this.emitEvent('loaded', { count: this.items.length });
+        this.popupPruefen();
       } catch (e) {
         this.errorMessage = 'Netzwerkfehler beim Laden.';
         this.emitEvent('error', { reason: 'network' });
       } finally {
         this.loading = false;
       }
+    },
+    // ---- Pop-up «Neue Anfragen» (einmal je Sitzung, nur wenn ungelesene Fragen da sind) ----
+    popupSpeicher() {
+      try {
+        const win = this.frontWindow();
+        return (win && win.sessionStorage) || null;
+      } catch (e) { return null; }
+    },
+    popupPruefen() {
+      if (this.popupOffen) return;
+      const n = anzahlNeueAnfragen(this.items);
+      if (n < 1) return;
+      const speicher = this.popupSpeicher();
+      if (schonGezeigt(speicher)) return;
+      alsGezeigtMerken(speicher);
+      this.popupAnzahl = n;
+      this.popupOffen = true;
+      this.emitEvent('popup-opened', { count: n });
+      this.$nextTick(() => { try { this.$refs.popupAnsehen && this.$refs.popupAnsehen.focus(); } catch (e) { /* ignore */ } });
+    },
+    popupSchliessen() {
+      this.popupOffen = false;
+    },
+    popupAnsehenKlick() {
+      this.popupOffen = false;
+      const url = sichereUrl(this.content && this.content.anfragenUrl);
+      this.emitEvent('popup-clicked', { url });
+      const win = this.frontWindow();
+      if (win && win.location) {
+        try { win.location.href = url; } catch (e) { /* ignore */ }
+      }
+    },
+    // Fokus bleibt im Pop-up (zwei Knöpfe).
+    popupTab(ev) {
+      const a = this.$refs.popupAnsehen;
+      const b = this.$refs.popupSpaeter;
+      if (!a || !b || typeof document === 'undefined') return;
+      const aktiv = document.activeElement;
+      if (ev.shiftKey && aktiv === a) { ev.preventDefault(); b.focus(); }
+      else if (!ev.shiftKey && aktiv === b) { ev.preventDefault(); a.focus(); }
     },
     // ---- Dropdown auf/zu ----
     toggle() {
@@ -761,4 +825,36 @@ export default {
 @media (max-width: 600px) {
   .hrk-notif__panel { width: 300px; }
 }
+
+/* Pop-up «Neue Anfragen» (Stil A: Linien statt Flächen, Gold nur als Unterstrich) */
+.hrk-notif__scrim {
+  position: fixed; inset: 0; z-index: 1000;
+  display: flex; align-items: center; justify-content: center;
+  padding: var(--hrk-space-4);
+  background: rgba(43, 43, 43, 0.45);
+}
+.hrk-notif__popup {
+  width: 100%; max-width: 420px; box-sizing: border-box;
+  padding: var(--hrk-space-5);
+  background: var(--hrk-surface);
+  border: 1px solid var(--hrk-border);
+  border-radius: var(--hrk-radius-md);
+  box-shadow: var(--hrk-shadow-pop);
+}
+.hrk-notif__popup-title {
+  margin: 0 0 var(--hrk-space-2);
+  font-family: 'Gloock', var(--hrk-font-head);
+  font-weight: 400; font-size: var(--hrk-fs-h2);
+  color: var(--hrk-bordeaux);
+}
+.hrk-notif__popup-text { margin: 0 0 var(--hrk-space-5); font-size: var(--hrk-fs-body); line-height: var(--hrk-lh-body); color: var(--hrk-text); }
+.hrk-notif__popup-actions { display: flex; gap: var(--hrk-space-5); align-items: center; }
+.hrk-notif__textbtn {
+  min-height: var(--hrk-tap-min); padding: 0 var(--hrk-space-1);
+  background: none; border: 0; border-bottom: 2px solid var(--hrk-gold);
+  border-radius: 0; cursor: pointer;
+  font: inherit; font-weight: var(--hrk-fw-semibold); color: var(--hrk-text);
+}
+.hrk-notif__textbtn--leise { border-bottom-color: transparent; font-weight: var(--hrk-fw-regular); color: var(--hrk-text-muted); }
+.hrk-notif__textbtn:focus-visible { outline: none; box-shadow: var(--hrk-focus-ring); }
 </style>
