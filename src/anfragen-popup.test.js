@@ -123,7 +123,7 @@ describe('Komponente', () => {
     w.unmount();
   });
   it('Der Hintergrund des Pop-ups nutzt ein Token statt einer harten Farbe', () => {
-    const quelle = readFileSync(new URL('./wwElement.vue', import.meta.url), 'utf8');
+    const quelle = readFileSync('src/wwElement.vue', 'utf8');
     expect(quelle).not.toMatch(/rgba\(43,\s*43,\s*43/);
     expect(quelle).toMatch(/\.hrk-notif__scrim[^}]*var\(--hrk-overlay\)/);
   });
