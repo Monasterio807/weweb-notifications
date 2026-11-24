@@ -114,7 +114,7 @@
 </template>
 
 <script>
-import { zahlAusContentRange, ANFRAGE_TITEL, popupSatz, schonGezeigt, alsGezeigtMerken, sichereUrl } from './anfragen-popup.js';
+import { zahlAusContentRange, ANFRAGE_TITEL, popupSatz, schonGezeigt, alsGezeigtMerken, sichereUrl, sichereAktionsUrl } from './anfragen-popup.js';
 // Schriften (Stil A, Entscheid 13.10.2026): Gloock (Titel), Archivo (Labels), Inter (Text). Der WeWeb-<head>
 // laedt sie nicht. Eigener Link-Id, damit das Paket von header-pro/footer (id hrk-fonts) nicht verdraengt
 // wird. Ohne Laden gelten Georgia bzw. System-Schrift.
@@ -526,13 +526,14 @@ export default {
     // ---- Klick auf Benachrichtigung ----
     async onItemClick(n) {
       if (!n || !n.id) return;
-      const actionUrl = n.action_url || '';
-      this.emitEvent('notification-clicked', { id: n.id, action_url: actionUrl });
+      // G2-22: nur eigene Adressen öffnen und weitergeben. Bei einer unsicheren Adresse bleibt die Liste einfach zu.
+      const win = this.frontWindow();
+      const ziel = sichereAktionsUrl(n.action_url, win && win.location && win.location.origin);
+      this.emitEvent('notification-clicked', { id: n.id, action_url: ziel });
       await this.markRead(n.id);
-      if (actionUrl) {
-        const win = this.frontWindow();
+      if (ziel) {
         if (win && win.location) {
-          try { win.location.href = actionUrl; } catch (e) { /* ignore */ }
+          try { win.location.href = ziel; } catch (e) { /* ignore */ }
         }
       } else {
         this.close();

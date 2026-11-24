@@ -35,3 +35,16 @@ export function sichereUrl(url) {
   const u = String(url || '').trim();
   return /^\/(?!\/)[^\s]*$/.test(u) ? u : ANFRAGEN_URL_STANDARD;
 }
+
+// G2-22: Adresse einer Benachrichtigung (action_url) vor dem Öffnen prüfen. Erlaubt sind eine
+// relative Adresse der eigenen App oder eine https-Adresse mit genau der eigenen Herkunft.
+// Alles andere (javascript:, data:, fremde Seiten) gibt '' zurück: dann wird nichts geöffnet.
+export function sichereAktionsUrl(url, eigeneHerkunft) {
+  const u = String(url || '').trim();
+  if (!u) return '';
+  if (/^\/(?!\/)[^\s]*$/.test(u)) return u;
+  if (!/^https:\/\/[^\s]+$/i.test(u) || !eigeneHerkunft) return '';
+  try {
+    return new URL(u).origin === new URL(String(eigeneHerkunft)).origin ? u : '';
+  } catch (e) { return ''; }
+}

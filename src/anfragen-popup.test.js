@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
 import Komponente from './wwElement.vue';
-import { zahlAusContentRange, anzahlNeueAnfragen, popupSatz, schonGezeigt, alsGezeigtMerken, sichereUrl, POPUP_SCHLUESSEL } from './anfragen-popup.js';
+import { zahlAusContentRange, anzahlNeueAnfragen, popupSatz, schonGezeigt, alsGezeigtMerken, sichereUrl, sichereAktionsUrl, POPUP_SCHLUESSEL } from './anfragen-popup.js';
 
 const FRAGE = (id, gelesen = false) => ({ id, type: 'emily', title: 'Neue Frage an dich', message: 'Erfundener Betrieb hat Emily gebeten, dir eine Frage weiterzuleiten.', is_read: gelesen, action_url: '/verwaltung?tab=cockpit', created_at: '2026-11-21T08:00:00Z' });
 const ANDERE = { id: 'x', type: 'system', title: 'Willkommen', message: 'Hallo', is_read: false, action_url: '', created_at: '2026-11-21T07:00:00Z' };
@@ -134,5 +134,45 @@ describe('Komponente', () => {
     const klick = e.map((x) => x[0]).find((x) => x && x.name === 'popup-clicked');
     expect(klick.event.url).toBe('/verwaltung?tab=anfragen');
     w.unmount();
+  });
+});
+
+describe('Klick auf Benachrichtigung (G2-22)', () => {
+  it('sichereAktionsUrl lässt nur eigene Adressen durch', () => {
+    const o = 'https://app.example.test';
+    expect(sichereAktionsUrl('/emily?expertenfrage=1', o)).toBe('/emily?expertenfrage=1');
+    expect(sichereAktionsUrl('https://app.example.test/abo', o)).toBe('https://app.example.test/abo');
+    expect(sichereAktionsUrl('javascript:alert(1)', o)).toBe('');
+    expect(sichereAktionsUrl('data:text/html,x', o)).toBe('');
+    expect(sichereAktionsUrl('//fremd.example', o)).toBe('');
+    expect(sichereAktionsUrl('https://fremd.example/x', o)).toBe('');
+    expect(sichereAktionsUrl('http://app.example.test/abo', o)).toBe('');
+    expect(sichereAktionsUrl('', o)).toBe('');
+    expect(sichereAktionsUrl(null, o)).toBe('');
+  });
+  const ZEILE = { id: 'n1', type: 'info', title: 'Titel', message: 'Text', is_read: false, created_at: '2026-11-24T08:00:00Z' };
+  const mitUrl = async (aktion) => {
+    sessionStorage.setItem(POPUP_SCHLUESSEL, '1');
+    const fenster = { location: { href: 'AUSGANG', origin: 'https://app.example.test' }, sessionStorage };
+    globalThis.wwLib = { wwVariable: { useComponentVariable: () => ({ value: { value: 0 }, setValue() {} }) }, getFrontWindow: () => fenster };
+    globalThis.fetch = vi.fn(async (url, opt) => {
+      if (opt && opt.method === 'PATCH') return new Response('[]', { status: 200 });
+      return new Response(JSON.stringify([{ ...ZEILE, action_url: aktion }]), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    });
+    const w = mount(Komponente, { props: { content: { authToken: 'test-token', userId: 'u-1', supabaseAnonKey: 'test-key', supabaseUrl: 'https://example.test', realtime: false }, uid: 'test' } });
+    await flushPromises();
+    await w.vm.onItemClick({ ...ZEILE, action_url: aktion });
+    await flushPromises();
+    w.unmount();
+    return fenster.location.href;
+  };
+  it('öffnet eine javascript:-Adresse nicht', async () => {
+    expect(await mitUrl('javascript:alert(1)')).toBe('AUSGANG');
+  });
+  it('öffnet eine fremde Adresse nicht', async () => {
+    expect(await mitUrl('https://fremd.example/x')).toBe('AUSGANG');
+  });
+  it('öffnet eine eigene Adresse weiterhin', async () => {
+    expect(await mitUrl('/emily?expertenfrage=1')).toBe('/emily?expertenfrage=1');
   });
 });
