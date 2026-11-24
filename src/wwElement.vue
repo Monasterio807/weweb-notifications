@@ -501,6 +501,7 @@ export default {
     dropdownEscape(ev) {
       if (!this.open) return;
       if (ev && typeof ev.preventDefault === 'function') ev.preventDefault();
+      if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation();
       this.close();
       this.$nextTick(() => { try { if (this.$refs.bell && this.$refs.bell.focus) this.$refs.bell.focus(); } catch (e) { /* best-effort */ } });
     },
