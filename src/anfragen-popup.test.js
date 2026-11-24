@@ -34,6 +34,7 @@ describe('Logik', () => {
     expect(sichereUrl('/verwaltung?tab=anfragen')).toBe('/verwaltung?tab=anfragen');
     expect(sichereUrl('https://fremd.example/x')).toBe('/verwaltung?tab=anfragen');
     expect(sichereUrl('//fremd.example')).toBe('/verwaltung?tab=anfragen');
+    expect(sichereUrl('/\\fremd.example')).toBe('/verwaltung?tab=anfragen');
     expect(sichereUrl('javascript:alert(1)')).toBe('/verwaltung?tab=anfragen');
     expect(sichereUrl('')).toBe('/verwaltung?tab=anfragen');
   });
@@ -145,6 +146,7 @@ describe('Klick auf Benachrichtigung (G2-22)', () => {
     expect(sichereAktionsUrl('javascript:alert(1)', o)).toBe('');
     expect(sichereAktionsUrl('data:text/html,x', o)).toBe('');
     expect(sichereAktionsUrl('//fremd.example', o)).toBe('');
+    expect(sichereAktionsUrl('/\\fremd.example', o)).toBe('');
     expect(sichereAktionsUrl('https://fremd.example/x', o)).toBe('');
     expect(sichereAktionsUrl('http://app.example.test/abo', o)).toBe('');
     expect(sichereAktionsUrl('', o)).toBe('');

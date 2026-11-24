@@ -33,7 +33,7 @@ export function alsGezeigtMerken(speicher) {
 // Nur relative Adressen der eigenen App sind erlaubt (kein Weiterleiten an fremde Seiten).
 export function sichereUrl(url) {
   const u = String(url || '').trim();
-  return /^\/(?!\/)[^\s]*$/.test(u) ? u : ANFRAGEN_URL_STANDARD;
+  return /^\/(?![\/\\])[^\s\\]*$/.test(u) ? u : ANFRAGEN_URL_STANDARD;
 }
 
 // G2-22: Adresse einer Benachrichtigung (action_url) vor dem Öffnen prüfen. Erlaubt sind eine
@@ -42,7 +42,7 @@ export function sichereUrl(url) {
 export function sichereAktionsUrl(url, eigeneHerkunft) {
   const u = String(url || '').trim();
   if (!u) return '';
-  if (/^\/(?!\/)[^\s]*$/.test(u)) return u;
+  if (/^\/(?![\/\\])[^\s\\]*$/.test(u)) return u;
   if (!/^https:\/\/[^\s]+$/i.test(u) || !eigeneHerkunft) return '';
   try {
     return new URL(u).origin === new URL(String(eigeneHerkunft)).origin ? u : '';
