@@ -1,5 +1,5 @@
 <template>
-  <div class="hrk-root hrk-notif">
+  <div class="hrk-root hrk-notif" @keydown.esc="dropdownEscape">
     <!-- Glocke + Badge -->
     <button
       ref="bell"
@@ -496,6 +496,13 @@ export default {
     close() {
       this.open = false;
       this.detachOutsideClick();
+    },
+    // A-016 G2-23: Escape schliesst das Dropdown, der Fokus kehrt auf die Glocke zurueck.
+    dropdownEscape(ev) {
+      if (!this.open) return;
+      if (ev && typeof ev.preventDefault === 'function') ev.preventDefault();
+      this.close();
+      this.$nextTick(() => { try { if (this.$refs.bell && this.$refs.bell.focus) this.$refs.bell.focus(); } catch (e) { /* best-effort */ } });
     },
     attachOutsideClick() {
       const doc = this.frontDocument();
